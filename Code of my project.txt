@@ -1,0 +1,584 @@
+// Initializing variables.
+
+unsigned char StepperCount_1[9] = {0,0,0,0,0,0,0,0,0};
+unsigned char StepperCount_1[9] = {0,0,0,0,0,0,0,0,0};
+unsigned char StepperCount_2[9] = {0,0,0,0,0,0,0,0,0};
+unsigned char StepBack_1[9] = {0,0,0,0,0,0,0,0,0};
+unsigned char StepBack_2[9] = {0,0,0,0,0,0,0,0,0};
+
+unsigned int e = 0;
+unsigned int g = 0;
+unsigned int i = 0;
+unsigned int j = 0;
+unsigned int k;
+unsigned int l;
+unsigned int x;
+unsigned int y;
+
+unsigned int F1 = 0;
+unsigned int S1 = 0;
+unsigned int F2 = 0;
+unsigned int S2 = 0;
+
+unsigned int Back_1 = 0;
+unsigned int Back_2 = 0;
+unsigned int q = 0;
+unsigned int t = 0;
+
+unsigned int q1 = 0;
+unsigned int t1 = 0;
+
+unsigned int Initial_1 = 0;
+unsigned int Initial_2 = 0;
+
+unsigned int pause = 0;
+unsigned int stop = 0;
+unsigned int timer = 0;
+
+unsigned int minutes = 0;
+unsigned int seconds = 0;
+unsigned int initial = 0;
+unsigned char m1[16];
+
+unsigned char loop1;
+unsigned char loop2;
+unsigned char loop3;
+unsigned char loop4;
+
+sbit LCD_RS at LATE0_bit;
+sbit LCD_EN at LATB5_bit;
+sbit LCD_D4 at LATE1_bit;
+sbit LCD_D5 at LATA5_bit;
+sbit LCD_D6 at LATB3_bit;
+sbit LCD_D7 at LATB4_bit;
+
+
+sbit LCD_RS_Direction at TRISE0_bit;
+sbit LCD_EN_Direction at TRISB5_bit;
+sbit LCD_D4_Direction at TRISE1_bit;
+sbit LCD_D5_Direction at TRISA5_bit;
+sbit LCD_D6_Direction at TRISB3_bit;
+sbit LCD_D7_Direction at TRISB4_bit;
+
+void servoRotate0() //0 Degree
+{
+
+  unsigned int drilling;
+  for(drilling=0;drilling<50;drilling++)
+  {
+
+    PORTD.RD2 = 1;
+    Delay_us(800);
+    PORTD.RD2 = 0;
+    Delay_us(19200);
+
+  }
+
+}
+
+
+void servoRotate90() //90 Degree
+{
+
+  unsigned int drilling;
+  for(drilling=0;drilling<50;drilling++)
+  {
+
+    PORTD.RD2 = 1;
+    Delay_us(1500);
+    PORTD.RD2 = 0;
+    Delay_us(18500);
+
+  }
+
+}
+
+
+void servoRotate180() //180 Degree
+{
+
+  unsigned int drilling;
+  for(drilling=0;drilling<50;drilling++)
+  {
+
+    PORTD.RD2 = 1;
+    Delay_us(2200);
+    PORTD.RD2 = 0;
+    Delay_us(17800);
+
+  }
+
+}
+
+
+
+
+
+
+// Function to generate interrupt and timer.
+
+void interrupt()
+{
+
+      if(T0IF)
+     {
+
+       timer++;
+
+     }
+
+     T0IF_bit = 0;
+       if(INTCON.INT0IF==1)
+
+      {
+
+         PORTE.RE2 = 1;
+         stop++;
+         Delay_ms(500);
+
+      }
+       INTCON.INT0IF = 0;
+              if(INTCON3.INT1IF==1)
+
+              {
+
+                 Delay_ms(500);
+                   while(pause<1)
+                   {
+
+                       PORTE.RE2 = 1;
+                       if(PORTB.RB1==0)
+
+                       {
+
+                           Delay_ms(100);
+                           if(PORTB.RB1==0)
+
+                           {
+
+                                pause++;
+
+                           }
+
+                        }
+
+                   }
+
+              }
+
+              PORTE.RE2 = 0;
+              pause = 0;
+              INTCON3.INT1IF = 0;
+
+}
+
+
+
+
+
+
+// Main program excutes here.
+
+void main()
+{
+
+  CMCON = 0x07;
+  ADCON1 = 0b00001111;
+
+  // Ports used for Stepper Motor 1.
+
+  TRISD.RD7 = 0;
+  TRISD.RD6 = 0;
+  TRISD.RD5 = 0;
+  TRISD.RD4 = 0;
+  TRISC.RC0 = 1;  // Stepper Motor 1 forward motion.
+  TRISC.RC1 = 1;  // Stepper Motor 1 backward motion.
+
+  // Ports used for Stepper Motor 2.
+
+  TRISC.RC7 = 0;
+  TRISC.RC6 = 0;
+  TRISC.RC5 = 0;
+  TRISC.RC4 = 0;
+
+  TRISC.RC2 = 1;  // Stepper Motor 2 forward motion.
+
+  TRISD.RD0 = 1;  // Stepper Motor 2 backward motion.
+
+
+
+
+  // Ports used for move the conveyer.
+
+  TRISA.RA1 = 0;
+  TRISA.RA2 = 0;
+  TRISA.RA3 = 0;
+  TRISA.RA4 = 0;
+
+  // Dedicated port for Play, Pause, reset and stop the entire process.... (Important) !
+
+  TRISB.RB0 = 1;    // Stop.
+  TRISB.RB1 = 1;    // Pause.
+  TRISA.RA0 = 1;    // Play and reset.
+  TRISE.RE2 = 0;
+
+  // Push button to do multiple drilling operation.
+
+  TRISD.RD1 = 1;
+  TRISD.RD2 = 0;
+
+  // Configure the LCD Display.
+
+  Lcd_Init();
+  Lcd_Cmd(_LCD_CLEAR);
+  Lcd_Cmd(_LCD_CURSOR_OFF);
+  Lcd_Out(1,4,"CNC Machine");
+  Lcd_Out(2,1,"Learning");
+
+
+
+
+
+  // Configure the UART
+
+  // Configure the Interrupt for Pause.
+
+  INTCON3.INT1IE = 1;
+  INTCON2.INTEDG1 = 0;
+  INTCON3.INT1IF = 0;
+  INTCON3.INT1IP = 1;  // High priority to pause the machine.
+  INTCON.GIE = 1;
+
+  // Configure the Interrupt for Stop.
+
+  INTCON.INT0IE = 1;
+  INTCON2.INTEDG2 = 0;
+  INTCON.INT0IF = 0;
+  INTCON.PEIE = 1;
+
+ // Configure the Timer0
+
+  TMR0L = 0;
+
+  T0CON = 0b10000100;
+  
+TMR0IE_bit = 1;
+
+  TMR0IF_bit = 0;
+
+   
+
+ loop3:
+      while(1)
+
+      {     
+
+
+
+  // Loops used for Stepper Motor 1 forward motion.
+
+              if(PORTC.RC0==0)
+
+              {
+
+               Delay_ms(50);
+                 if(PORTC.RC0==0)
+                 {
+
+                   StepperCount_1[i]++;
+                   F1++;
+
+                 }
+
+              }
+
+             
+
+
+
+ // Loops used for Stepper Motor 2 forward motion.
+
+              if(PORTC.RC2==0)
+
+              {
+
+               Delay_ms(50);
+                 if(PORTC.RC2==0)
+
+                 {
+
+                   StepperCount_2[j]++;
+                   F2++;
+
+                 }
+
+              }
+            // Loops used for StepBack_1 Backward motion.
+
+              if(PORTC.RC1==0)
+
+              {
+
+               Delay_ms(50);
+                 if(PORTC.RC1==0)
+
+                 {
+
+                   StepBack_1[e]++;
+                   S1++;
+
+                 }
+
+              }
+
+              //Loops used for StepBack_2 Backward motion.
+
+              if(PORTD.RD0==0)
+              {
+
+               Delay_ms(50);
+                 if(PORTD.RD0==0)
+                 {
+                   StepBack_2[g]++;
+                   S2++;
+                 }
+
+              }
+
+              // Loops used for Multiple drilling operation.
+
+              if(PORTD.RD1==0)
+              {
+
+                Delay_ms(100);
+                if(PORTD.RD1==0)
+                {
+                        i++;
+                        j++;
+                        e++;
+                        g++;
+                        Delay_ms(500);
+                }
+
+              }
+              //Loops used for both StepperMotor 1 and 2.
+
+              if(PORTA.RA0==0)
+              {
+
+                Delay_ms(100);
+                if(PORTA.RA0==0)
+                {
+                      initial++;
+                     if(initial==1)
+                     {
+                         Lcd_Cmd(_LCD_CLEAR);
+                         Lcd_Out(1,4,"CNC Machine");
+                         Lcd_Out(2,1,"Loading Wait");
+                         stop = 1;
+                         goto loop4;
+
+                     }
+                   loop1:
+
+                      Delay_ms(3000);
+                        Lcd_Cmd(_LCD_CLEAR);
+                        Lcd_Out(1,4,"CNC Machine");
+                        Lcd_Out(2,1,"Running");
+                        timer = 0;
+                          i = 0;
+                           j = 0;
+                            e = 0;
+                             g = 0;
+
+                   loop2:
+
+                      for(k=0;k<StepperCount_1[i];k++)
+
+                      {
+
+                                  PORTD.RD7 = 1 ;
+                                  Delay_ms(10);
+                                  PORTD.RD7 = 0 ;
+                                  PORTD.RD6 = 1;
+                                  Delay_ms(10);
+                                  PORTD.RD6 = 0 ;
+                                  PORTD.RD5 = 1;
+                                  Delay_ms(10);
+                                  PORTD.RD5 = 0 ;
+                                  PORTD.RD4 = 1;
+                                  Delay_ms(10);
+                                  PORTD.RD4 = 0 ;
+
+                      }
+
+                      for(x=0;x<StepBack_1[e];x++)
+
+                      {
+
+                                  PORTD.RD4 = 1;
+                                  Delay_ms(10);
+                                  PORTD.RD4 = 0 ;
+                                  PORTD.RD5 = 1;
+                                  Delay_ms(10);
+                                  PORTD.RD5 = 0 ;
+                                  PORTD.RD6 = 1;
+                                  Delay_ms(10);
+                                  PORTD.RD6 = 0 ;
+                                  PORTD.RD7 = 1 ;
+                                  Delay_ms(10);
+                                  PORTD.RD7 = 0 ;
+
+                      }
+
+                              for(l=0;l<StepperCount_2[j];l++)
+
+                              {
+
+                                    PORTA.RA1 = 1;
+                                    Delay_ms(10);
+                                    PORTA.RA1 = 0 ;
+                                    PORTA.RA2 = 1;
+                                    Delay_ms(10);
+                                    PORTA.RA2 = 0 ;
+                                    PORTA.RA3 = 1;
+                                    Delay_ms(10);
+                                    PORTA.RA3 = 0 ;
+                                    PORTA.RA4 = 1 ;
+                                    Delay_ms(10);
+                                    PORTA.RA4 = 0 ;
+
+                              }
+
+
+
+                              for(y=0;y<StepBack_2[g];y++)
+                              {
+
+                                    PORTA.RA4 = 1;
+                                    Delay_ms(10);
+                                    PORTA.RA4 = 0 ;
+                                    PORTA.RA3 = 1;
+                                    Delay_ms(10);
+                                    PORTA.RA3 = 0 ;
+                                    PORTA.RA2 = 1;
+                                    Delay_ms(10);
+                                    PORTA.RA2 = 0 ;
+                                    PORTA.RA1 = 1 ;
+                                    Delay_ms(10);
+                                    PORTA.RA1 = 0 ;
+
+                              }
+
+                                       // For drilling operation.
+
+                                            Delay_ms(500);
+                                            servoRotate0(); //0 Degree
+                                            Delay_ms(500);
+                                            servoRotate90(); //90 Degree
+                                            Delay_ms(500);
+                                            servoRotate180(); //180 Degree
+                                            Delay_ms(1000);
+                                               i++;
+                                                j++;
+                                                 e++;
+                                                  g++;
+
+
+                                                  // To bring the CNC machine to initial position.
+
+ if(StepperCount_1[i]==0 && StepperCount_2[j]==0 && StepBack_1[e]==0 && StepBack_2[g]==0 )
+
+                                                {
+
+                                                  loop4:
+
+                                                     q = (F1>=S1)?F1:S1;
+                                                     t = (F1<=S1)?F1:S1;
+                                                     q1 = (F2>=S2)?F2:S2;
+                                                     t1 = (F2<=S2)?F2:S2;
+                                                     Back_1 = q-t;
+                                                     Back_2 = q1-t1;
+
+                                                            for(Initial_1=Back_1;Initial_1>0;Initial_1--)
+
+                                                            {
+
+                                                                      PORTD.RD7 = 1 ;
+                                                                      Delay_ms(10);
+                                                                      PORTD.RD7 = 0 ;
+                                                                      PORTD.RD6 = 1;
+                                                                      Delay_ms(10);
+                                                                      PORTD.RD6 = 0 ;
+                                                                      PORTD.RD5 = 1;
+                                                                      Delay_ms(10);
+                                                                      PORTD.RD5 = 0 ;
+                                                                      PORTD.RD4 = 1;
+                                                                      Delay_ms(10);
+                                                                      PORTD.RD4 = 0 ;
+
+                                                            }
+
+                                                            for(Initial_2=Back_2;Initial_2>0;Initial_2--)
+
+                                                            {
+
+                                                                      PORTA.RA4 = 1;
+                                                                      Delay_ms(10);
+                                                                      PORTA.RA4 = 0 ;
+                                                                      PORTA.RA3 = 1;
+                                                                      Delay_ms(10);
+                                                                      PORTA.RA3 = 0 ;
+                                                                      PORTA.RA2 = 1;
+                                                                      Delay_ms(10);
+                                                                      PORTA.RA2 = 0 ;
+                                                                      PORTA.RA1 = 1 ;
+                                                                      Delay_ms(10);
+                                                                      PORTA.RA1 = 0 ;
+
+                                                            }
+
+                                                            if(stop==1)
+
+                                                            {
+
+                                                                  Lcd_Cmd(_LCD_CLEAR);
+                                                                  Lcd_Out(1,4,"CNC Machine");
+                                                                  Lcd_Out(2,1,"Stopped");
+                                                                  Delay_ms(5000);
+                                                                  Lcd_Cmd(_LCD_CLEAR);
+                                                                  Lcd_Out(1,4,"CNC Machine");
+                                                                  Lcd_Out(2,1,"Press Play");
+                                                                  stop = 0;
+                                                                  Delay_ms(1000);
+                                                                  goto loop3;
+
+                                                            }
+
+                                                               seconds = timer;
+                                                               IntToStr(seconds, m1);
+                                                               m1[15] = 0;
+                                                                  Lcd_Cmd(_LCD_CLEAR);
+                                                                  Lcd_Out(1,4,"CNC Machine");
+                                                                  Lcd_Out(2,4,m1);
+                                                                  Lcd_Out(2,11,"Sec");
+
+                                                            // Enable the conveyer below.
+
+                                                                timer = 0;
+                                                            Delay_ms(1000);
+                                                            goto loop1;
+
+                                                }
+
+                                                Else
+
+                                                {
+                                                      Delay_ms(500);
+                                                      goto loop2;
+
+                                                }
+                }
+              }
+      }
+}
